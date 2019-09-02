@@ -4,7 +4,6 @@ const request = require('request');
 const brain = require('brain.js');
 
 const n_network = new brain.NeuralNetwork();
-const n = a;
 //first easy attempt of training the ai with random samples
 //placeholder to be expanded with real data
 let t_info = n_network.train([
