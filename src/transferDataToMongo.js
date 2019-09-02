@@ -9,12 +9,17 @@ const mongoUrl = "mongodb://localhost:27017/soccerAiDB";
 
 
 //executes Main-Funktion
-main();
+//Insert Data from Output-folder
+//main(0);
+//Delete All from MongoDB
+main(0);
 
-async function main() {
+
+async function main(operation_desc) {
     // ### Persist scraped JSON files in Mongo DB
     let waitForInput = false;
-    let operation = 0;
+
+    let operation = operation_desc;
     // // operation = operationSelector();
     // // if (operation === 1 || operation === 0) {
     // //     waitForInput = false;
@@ -44,12 +49,108 @@ async function main() {
     // console.log(years);
     let releventResults = [];
     let matchId = 1;
+    let relevantRatings = [];
+    fifaRatings.forEach(function (rating) {
+        //adjusting naming dirscrepancies
+        switch (rating.name) {
+            case "Dortmund":
+                rating.name = "Borussia Dortmund";
+                break;
+            case "Bayern Munich":
+                rating.name = "FC Bayern";
+            case "FC Bayern München":
+                rating.name = "FC Bayern";
+                break;
+            case "Bayern München":
+                rating.name = "FC Bayern";
+            case "Hertha BSC Berlin":
+                rating.name = "Hertha BSC"
+                break;
+            case "SV Werder Bremen":
+                rating.name = "Werder Bremen";
+                break;
+            case "FSV Mainz 05":
+                rating.name = "1. FSV Mainz 05";
+                break;
+            case "Mainz":
+                rating.name = "1. FSV Mainz 05";
+                break;
+            case "1.FC Nürnberg":
+                rating.name = "1. FC Nürnberg"
+                break;
+            case "Bor. M'Gladbach":
+                rating.name = "Borussia Mönchengladbach";
+                break;
+            case "FC Energie Cottbus":
+                rating.name = "Energie Cottbus";
+                break;
+            case "Bremen":
+                rating.name = "Werder Bremen";
+                break;
+            case "Hamburger Sport Verein":
+                rating.name = "Hamburger SV";
+                break;
+            case "Hamburg SV":
+                rating.name = "Hamburger SV";
+                break;
+            case "Schalke":
+                rating.name = "FC Schalke 04";
+                break;
+            case "Schalke 04":
+                rating.name = "FC Schalke 04";
+                break;
+            case "Frankfurt":
+                rating.name = "Eintracht Frankfurt";
+                break;
+            case "Eint. Frankfurt":
+                rating.name = "Eintracht Frankfurt";
+                break;
+            case "1899 Hoffenheim":
+                rating.name = "TSG 1899 Hoffenheim";
+                break;
+            case "TSG Hoffenheim":
+                rating.name = "TSG 1899 Hoffenheim";
+                break;
+            case "Greuther Fürth":
+                rating.name = "SpVgg Greuther Fürth";
+                break;
+            case "Düsseldorf":
+                rating.name = "Fortuna Düsseldorf";
+                break;
+            case "F. Düsseldorf":
+                rating.name = "Fortuna Düsseldorf";
+                break;
+            case "Braunschweig":
+                rating.name = "Eintracht Braunschweig";
+                break;
+            case "Darmstadt":
+                rating.name = "SV Darmstadt 98";
+                break;
+            case "FC Ingolstadt":
+                rating.name = "FC Ingolstadt 04";
+                break;
 
+        }
+        relevantRatings.push(rating);
+
+    });
+
+    insertManyTeams('teamFifaRatings', relevantRatings);
+    //deleteAllEntries('teamFifaRatings');
+
+
+    /// ##########results##############
+    let teamNameResults = [];
     matchResults1.forEach(function (match) {
         // Loop continues with next element, if Match was not finished under regular conditions.
         if (match.MatchIsFinished === false) {
             return;
         }
+        if (!teamNameResults.includes(match.Team1.TeamName)) {
+            teamNameResults.push(match.Team1.TeamName);
+        }
+        //teamnamefinder
+
         //collecting relevant data in variables
         let seasonInfo;
         seasonInfo = match.LeagueName.slice(-9);
@@ -57,13 +158,6 @@ async function main() {
         let matchResult;
 
         let diff = match.MatchResults[0].PointsTeam1 - match.MatchResults[0].PointsTeam2;
-
-        //console.log(match);
-        //console.log(match.MatchResults);
-
-
-
-
         switch (true) {
             case diff > 0:
                 matchResult = {
@@ -85,6 +179,18 @@ async function main() {
                     draw: 0,
                     loss: 1
                 }
+                break;
+        }
+
+        switch (match.Team1.TeamName) {
+            case "FC Bayern München":
+                match.Team1.TeamName = "FC Bayern";
+                break;
+        }
+
+        switch (match.Team2.TeamName) {
+            case "FC Bayern München":
+                match.Team2.TeamName = "FC Bayern";
                 break;
         }
 
@@ -114,10 +220,12 @@ async function main() {
             goalDifference: diff,
             matchResult: matchResult
         }
-        //console.log(relData.homeTeamGoals);
+
         releventResults.push(relData);
-        //insertTeam('matchResults', relData);
+
     });
+
+    console.log(teamNameResults);
 
     if (operation === 1) {
         deleteAllEntries('matchResults');
@@ -215,7 +323,7 @@ function insertManyTeams(colName, teamArray) {
 
 function deleteAllEntries(colName) {
     return MongoClient.connect(mongoUrl).then(function (db) {
-        db.db('soccerAiDB').collection("matchResults").deleteMany({});
+        db.db('soccerAiDB').collection(colName).deleteMany({});
         return db;
     }).then(function (db) {
         db.close();
@@ -259,4 +367,8 @@ const getData = async function (db, callback) {
 
     console.log(a);
     callback(a);
+}
+
+module.exports = {
+    main: main
 }
