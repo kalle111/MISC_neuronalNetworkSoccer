@@ -3,16 +3,22 @@ const fs = require('fs');
 const MongoClient = require('mongodb');
 const assert = require('assert');
 const path = require('path');
+const dataCleansing = require('./helperFiles/dataCleansing.js');
 //db name
 const dbName = 'soccerAiDB';
 const mongoUrl = "mongodb://localhost:27017/soccerAiDB";
 
 
-//executes Main-Funktion
-//Insert Data from Output-folder
-//main(0);
-//Delete All from MongoDB
-main(0);
+//Module export
+module.exports = {
+    main: main
+}
+
+// // //executes Main-Funktion
+// // //Insert Data from Output-folder
+// // //main(0);
+// // //Delete All from MongoDB
+main(2);
 
 
 async function main(operation_desc) {
@@ -37,102 +43,14 @@ async function main(operation_desc) {
 
     var fifaRatings = JSON.parse(fs.readFileSync(scrapeFolder + fifaRatingFile, 'utf-8'));
     var matchResults1 = JSON.parse(fs.readFileSync(scrapeFolder + matchResultFile, 'utf-8'));
-    //Check if all years in base data
-    //
-    // let years = [];
-    // matchResults.forEach(function (match) {
-    //     let dt = new Date(match.MatchDateTime);
-    //     if (!years.includes(dt.getFullYear())) {
-    //         years.push(dt.getFullYear());
-    //     }
-    // });
-    // console.log(years);
     let releventResults = [];
     let matchId = 1;
     let relevantRatings = [];
     fifaRatings.forEach(function (rating) {
         //adjusting naming dirscrepancies
-        switch (rating.name) {
-            case "Dortmund":
-                rating.name = "Borussia Dortmund";
-                break;
-            case "Bayern Munich":
-                rating.name = "FC Bayern";
-            case "FC Bayern München":
-                rating.name = "FC Bayern";
-                break;
-            case "Bayern München":
-                rating.name = "FC Bayern";
-            case "Hertha BSC Berlin":
-                rating.name = "Hertha BSC"
-                break;
-            case "SV Werder Bremen":
-                rating.name = "Werder Bremen";
-                break;
-            case "FSV Mainz 05":
-                rating.name = "1. FSV Mainz 05";
-                break;
-            case "Mainz":
-                rating.name = "1. FSV Mainz 05";
-                break;
-            case "1.FC Nürnberg":
-                rating.name = "1. FC Nürnberg"
-                break;
-            case "Bor. M'Gladbach":
-                rating.name = "Borussia Mönchengladbach";
-                break;
-            case "FC Energie Cottbus":
-                rating.name = "Energie Cottbus";
-                break;
-            case "Bremen":
-                rating.name = "Werder Bremen";
-                break;
-            case "Hamburger Sport Verein":
-                rating.name = "Hamburger SV";
-                break;
-            case "Hamburg SV":
-                rating.name = "Hamburger SV";
-                break;
-            case "Schalke":
-                rating.name = "FC Schalke 04";
-                break;
-            case "Schalke 04":
-                rating.name = "FC Schalke 04";
-                break;
-            case "Frankfurt":
-                rating.name = "Eintracht Frankfurt";
-                break;
-            case "Eint. Frankfurt":
-                rating.name = "Eintracht Frankfurt";
-                break;
-            case "1899 Hoffenheim":
-                rating.name = "TSG 1899 Hoffenheim";
-                break;
-            case "TSG Hoffenheim":
-                rating.name = "TSG 1899 Hoffenheim";
-                break;
-            case "Greuther Fürth":
-                rating.name = "SpVgg Greuther Fürth";
-                break;
-            case "Düsseldorf":
-                rating.name = "Fortuna Düsseldorf";
-                break;
-            case "F. Düsseldorf":
-                rating.name = "Fortuna Düsseldorf";
-                break;
-            case "Braunschweig":
-                rating.name = "Eintracht Braunschweig";
-                break;
-            case "Darmstadt":
-                rating.name = "SV Darmstadt 98";
-                break;
-            case "FC Ingolstadt":
-                rating.name = "FC Ingolstadt 04";
-                break;
-
-        }
+        rating.name = dataCleansing.nameCleansingRatings(rating.name);
+        //push to resultArray
         relevantRatings.push(rating);
-
     });
 
     insertManyTeams('teamFifaRatings', relevantRatings);
@@ -149,15 +67,14 @@ async function main(operation_desc) {
         if (!teamNameResults.includes(match.Team1.TeamName)) {
             teamNameResults.push(match.Team1.TeamName);
         }
-        //teamnamefinder
-
         //collecting relevant data in variables
         let seasonInfo;
         seasonInfo = match.LeagueName.slice(-9);
         let dt = new Date(match.MatchDateTime);
         let matchResult;
-
+        //goald difference
         let diff = match.MatchResults[0].PointsTeam1 - match.MatchResults[0].PointsTeam2;
+        //result object
         switch (true) {
             case diff > 0:
                 matchResult = {
@@ -182,19 +99,10 @@ async function main(operation_desc) {
                 break;
         }
 
-        switch (match.Team1.TeamName) {
-            case "FC Bayern München":
-                match.Team1.TeamName = "FC Bayern";
-                break;
-        }
+        //data cleansing due to naming differences in dataset
+        match.Team1.TeamName = dataCleansing.nameCleansingResults(match.Team1.TeamName);
 
-        switch (match.Team2.TeamName) {
-            case "FC Bayern München":
-                match.Team2.TeamName = "FC Bayern";
-                break;
-        }
-
-
+        //data structure for relevant data, to be inserted to MongoDB
         let relData = {
             matchId: matchId++,
             matchYear: dt.getFullYear(),
@@ -220,21 +128,17 @@ async function main(operation_desc) {
             goalDifference: diff,
             matchResult: matchResult
         }
-
         releventResults.push(relData);
-
     });
-
+    //For debugging purposes
     console.log(teamNameResults);
-
+    //operation selector
     if (operation === 1) {
         deleteAllEntries('matchResults');
     } else {
         insertManyTeams('matchResults', releventResults);
     }
-
 }
-
 
 function operationSelector() {
     console.log('Which operation do you want to perform? (0 => Insert Data to MongoDB, 1 => Delete Data from MongoDB');
@@ -367,8 +271,4 @@ const getData = async function (db, callback) {
 
     console.log(a);
     callback(a);
-}
-
-module.exports = {
-    main: main
 }
