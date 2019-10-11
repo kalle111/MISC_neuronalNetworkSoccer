@@ -1,7 +1,5 @@
 const fs = require('fs');
 const brain = require('brain.js');
-const transferDataToMongo = require('./transferDataToMongo.js');
-
 
 const n_network = new brain.NeuralNetwork();
 //first easy attempt of training the ai with random samples
@@ -12,6 +10,7 @@ const n_network = new brain.NeuralNetwork();
 //1 == delete
 //transferDataToMongo.main(1);
 
+// test training info
 let t_info = n_network.train([{
         input: {
             homeStr: 95,
@@ -80,10 +79,13 @@ let t_info = n_network.train([{
     }
 ]);
 
+// test results based on test dataset
 const test_result = n_network.run([{
     homeStr: 5,
     awayStr: 99
 }]);
+
+//console output
 console.log(t_info);
 console.log(`test_result = ${test_result}`);
 console.log(test_result);

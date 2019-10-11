@@ -24,14 +24,7 @@ main(2);
 async function main(operation_desc) {
     // ### Persist scraped JSON files in Mongo DB
     let waitForInput = false;
-
     let operation = operation_desc;
-    // // operation = operationSelector();
-    // // if (operation === 1 || operation === 0) {
-    // //     waitForInput = false;
-    // // }
-
-
 
     var scrapeFolder = path.dirname(__dirname).concat('\\scraperOutput\\');
     var matchResultFile = fs.readdirSync(scrapeFolder).filter(function (fn) {
@@ -98,10 +91,8 @@ async function main(operation_desc) {
                 }
                 break;
         }
-
         //data cleansing due to naming differences in dataset
         match.Team1.TeamName = dataCleansing.nameCleansingResults(match.Team1.TeamName);
-
         //data structure for relevant data, to be inserted to MongoDB
         let relData = {
             matchId: matchId++,
@@ -157,7 +148,6 @@ function operationSelector() {
         }
     });
 }
-//func decl.
 async function grabData() {
     await MongoClient.connect(mongoUrl, async function (err, db) {
         assert.equal(null, err);
@@ -250,13 +240,9 @@ function dataInCol(colName) {
         return a;
     });
 };
-
-
-
 const closeClient = function (client) {
     client.close();
 }
-
 const getData = async function (db, callback) {
     // Get the documents collection
 
